@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vortex Rust SDK Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .section {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .response {
+            background: #f1f3f4;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 10px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .authenticated {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .not-authenticated {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .route-list {
+            list-style: none;
+            padding: 0;
+        }
+        .route-list li {
+            background: white;
+            margin-bottom: 5px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+            font-family: monospace;
+        }
+        .method {
+            display: inline-block;
+            width: 80px;
+            font-weight: bold;
+            text-align: center;
+            padding: 2px 8px;
+            border-radius: 3px;
+            margin-right: 10px;
+            font-size: 12px;
+        }
+        .GET { background: #28a745; color: white; }
+        .POST { background: #007bff; color: white; }
+        .DELETE { background: #dc3545; color: white; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 Vortex Rust SDK Demo</h1>
+        <p>Test the Rust integration with Vortex invitation and JWT functionality</p>
+    </div>
+
+    <div id="authStatus" class="status not-authenticated">
+        Not authenticated - Please log in to test Vortex routes
+    </div>
+
+    <div class="grid">
+        <div class="section">
+            <h2>🔐 Authentication</h2>
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" value="admin@example.com" placeholder="admin@example.com">
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" value="password123" placeholder="password123">
+            </div>
+            <button onclick="login()">Login</button>
+            <button onclick="logout()">Logout</button>
+            <button onclick="checkAuth()">Check Auth Status</button>
+
+            <div class="response" id="authResponse"></div>
+
+            <h3>Demo Users:</h3>
+            <ul style="font-family: monospace; font-size: 14px;">
+                <li><strong>admin@example.com</strong> / password123 (admin role)</li>
+                <li><strong>user@example.com</strong> / userpass (user role)</li>
+            </ul>
+            <button onclick="getDemoUsers()">Get Demo Users</button>
+        </div>
+
+        <div class="section">
+            <h2>⚡ Vortex Routes</h2>
+            <p>Available Vortex API endpoints:</p>
+            <ul class="route-list">
+                <li><span class="method POST">POST</span>/api/vortex/jwt</li>
+                <li><span class="method GET">GET</span>/api/vortex/invitations</li>
+                <li><span class="method GET">GET</span>/api/vortex/invitations/:id</li>
+                <li><span class="method DELETE">DELETE</span>/api/vortex/invitations/:id</li>
+                <li><span class="method POST">POST</span>/api/vortex/invitations/accept</li>
+                <li><span class="method GET">GET</span>/api/vortex/invitations/by-group/:type/:id</li>
+                <li><span class="method DELETE">DELETE</span>/api/vortex/invitations/by-group/:type/:id</li>
+                <li><span class="method POST">POST</span>/api/vortex/invitations/:id/reinvite</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="section">
+            <h2>🎯 Test JWT Generation</h2>
+            <p>Generate a Vortex JWT for the authenticated user</p>
+            <button onclick="generateJWT()" id="jwtBtn" disabled>Generate JWT</button>
+            <div class="response" id="jwtResponse"></div>
+        </div>
+
+        <div class="section">
+            <h2>📧 Test Invitations by Target</h2>
+            <div class="form-group">
+                <label for="targetType">Target Type:</label>
+                <select id="targetType">
+                    <option value="email">Email</option>
+                    <option value="username">Username</option>
+                    <option value="phoneNumber">Phone Number</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="targetValue">Target Value:</label>
+                <input type="text" id="targetValue" placeholder="user@example.com">
+            </div>
+            <button onclick="getInvitationsByTarget()" id="invitationsBtn" disabled>Get Invitations</button>
+            <div class="response" id="invitationsResponse"></div>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="section">
+            <h2>👥 Test Group Invitations</h2>
+            <div class="form-group">
+                <label for="groupType">Group Type:</label>
+                <input type="text" id="groupType" value="team" placeholder="team">
+            </div>
+            <div class="form-group">
+                <label for="groupId">Group ID:</label>
+                <input type="text" id="groupId" value="team-1" placeholder="team-1">
+            </div>
+            <button onclick="getInvitationsByGroup()" id="groupBtn" disabled>Get Group Invitations</button>
+            <div class="response" id="groupResponse"></div>
+        </div>
+
+        <div class="section">
+            <h2>🔗 Other Actions</h2>
+            <button onclick="testProtectedRoute()">Test Protected Route</button>
+            <button onclick="checkHealth()">Health Check</button>
+            <button onclick="getDemoUsers()">Get Demo Users</button>
+            <div class="response" id="otherResponse"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+
+        async function makeRequest(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    credentials: 'include', // Important: send cookies with requests
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    }
+                });
+
+                const data = await response.json();
+                return { ok: response.ok, status: response.status, data };
+            } catch (error) {
+                return { ok: false, status: 0, data: { error: error.message } };
+            }
+        }
+
+        function updateResponse(elementId, result) {
+            const element = document.getElementById(elementId);
+            element.className = 'response ' + (result.ok ? 'success' : 'error');
+            element.textContent = JSON.stringify(result.data, null, 2);
+        }
+
+        function updateAuthStatus(user) {
+            currentUser = user;
+            const statusElement = document.getElementById('authStatus');
+
+            if (user) {
+                statusElement.className = 'status authenticated';
+                statusElement.innerHTML = `✅ Authenticated as: ${user.email} (${user.role})`;
+
+                // Enable Vortex buttons
+                document.getElementById('jwtBtn').disabled = false;
+                document.getElementById('invitationsBtn').disabled = false;
+                document.getElementById('groupBtn').disabled = false;
+            } else {
+                statusElement.className = 'status not-authenticated';
+                statusElement.innerHTML = '❌ Not authenticated - Please log in to test Vortex routes';
+
+                // Disable Vortex buttons
+                document.getElementById('jwtBtn').disabled = true;
+                document.getElementById('invitationsBtn').disabled = true;
+                document.getElementById('groupBtn').disabled = true;
+            }
+        }
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            const result = await makeRequest('/api/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ email, password })
+            });
+
+            updateResponse('authResponse', result);
+
+            if (result.ok) {
+                updateAuthStatus(result.data.user);
+            }
+        }
+
+        async function logout() {
+            const result = await makeRequest('/api/auth/logout', { method: 'POST' });
+            updateResponse('authResponse', result);
+            updateAuthStatus(null);
+        }
+
+        async function checkAuth() {
+            const result = await makeRequest('/api/auth/me');
+            updateResponse('authResponse', result);
+
+            if (result.ok) {
+                updateAuthStatus(result.data);
+            } else {
+                updateAuthStatus(null);
+            }
+        }
+
+        async function generateJWT() {
+            const result = await makeRequest('/api/vortex/jwt', { method: 'POST' });
+            updateResponse('jwtResponse', result);
+        }
+
+        async function getInvitationsByTarget() {
+            const targetType = document.getElementById('targetType').value;
+            const targetValue = document.getElementById('targetValue').value;
+
+            if (!targetValue) {
+                updateResponse('invitationsResponse', { ok: false, data: { error: 'Target value required' } });
+                return;
+            }
+
+            const url = `/api/vortex/invitations?targetType=${encodeURIComponent(targetType)}&targetValue=${encodeURIComponent(targetValue)}`;
+            const result = await makeRequest(url);
+            updateResponse('invitationsResponse', result);
+        }
+
+        async function getInvitationsByGroup() {
+            const groupType = document.getElementById('groupType').value;
+            const groupId = document.getElementById('groupId').value;
+
+            if (!groupType || !groupId) {
+                updateResponse('groupResponse', { ok: false, data: { error: 'Group type and ID required' } });
+                return;
+            }
+
+            const url = `/api/vortex/invitations/by-group/${encodeURIComponent(groupType)}/${encodeURIComponent(groupId)}`;
+            const result = await makeRequest(url);
+            updateResponse('groupResponse', result);
+        }
+
+        async function testProtectedRoute() {
+            const result = await makeRequest('/api/demo/protected');
+            updateResponse('otherResponse', result);
+        }
+
+        async function checkHealth() {
+            const result = await makeRequest('/health');
+            updateResponse('otherResponse', result);
+        }
+
+        async function getDemoUsers() {
+            const result = await makeRequest('/api/auth/users');
+            updateResponse('authResponse', result);
+        }
+
+        // Check auth status on page load
+        checkAuth();
+    </script>
+</body>
+</html>

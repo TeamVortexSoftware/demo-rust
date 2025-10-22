@@ -1,0 +1,15 @@
+[package]
+name = "demo-rust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+vortex-sdk = { path = "../../packages/vortex-rust-sdk" }
+axum = { version = "0.7", features = ["macros"] }
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tower = { version = "0.4", features = ["util"] }
+tower-http = { version = "0.5", features = ["fs", "trace"] }
+tower-cookies = "0.10"
+chrono = { version = "0.4", features = ["serde"] }
