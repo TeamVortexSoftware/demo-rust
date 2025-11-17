@@ -1,7 +1,7 @@
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
-    response::{Html, IntoResponse, Json},
+    response::{IntoResponse, Json},
     routing::{delete, get, post},
     Router,
 };
@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tower_cookies::{Cookie, CookieManagerLayer, Cookies};
 use tower_http::services::ServeDir;
-use vortex_sdk::{Group, Identifier, InvitationTarget, VortexClient};
+use vortex_sdk::{InvitationTarget, VortexClient};
 
 #[derive(Clone)]
 struct AppState {
@@ -23,16 +23,7 @@ struct DemoUser {
     #[serde(skip_serializing, default)]
     password: String,
     name: String,
-    role: String,
-    groups: Vec<UserGroup>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct UserGroup {
-    #[serde(rename = "type")]
-    group_type: String,
-    id: String,
-    name: String,
+    is_auto_join_admin: bool,
 }
 
 fn demo_users() -> Vec<DemoUser> {
@@ -42,31 +33,14 @@ fn demo_users() -> Vec<DemoUser> {
             email: "admin@example.com".to_string(),
             password: "password123".to_string(),
             name: "Admin User".to_string(),
-            role: "admin".to_string(),
-            groups: vec![
-                UserGroup {
-                    group_type: "team".to_string(),
-                    id: "team-1".to_string(),
-                    name: "Engineering".to_string(),
-                },
-                UserGroup {
-                    group_type: "organization".to_string(),
-                    id: "org-1".to_string(),
-                    name: "Acme Corp".to_string(),
-                },
-            ],
+            is_auto_join_admin: true,
         },
         DemoUser {
             id: "user-2".to_string(),
             email: "user@example.com".to_string(),
             password: "userpass".to_string(),
             name: "Regular User".to_string(),
-            role: "user".to_string(),
-            groups: vec![UserGroup {
-                group_type: "team".to_string(),
-                id: "team-1".to_string(),
-                name: "Engineering".to_string(),
-            }],
+            is_auto_join_admin: false,
         },
     ]
 }
@@ -133,8 +107,7 @@ async fn login(cookies: Cookies, Json(req): Json<LoginRequest>) -> impl IntoResp
 }
 
 async fn logout(cookies: Cookies) -> impl IntoResponse {
-    let mut cookie = Cookie::named("session");
-    cookie.set_path("/");
+    let cookie = Cookie::build("session").path("/").build();
     cookies.remove(cookie);
     Json(serde_json::json!({"success": true}))
 }
@@ -171,8 +144,8 @@ async fn get_users() -> impl IntoResponse {
             serde_json::json!({
                 "id": u.id,
                 "email": u.email,
-                "role": u.role,
-                "groups": u.groups
+                "name": u.name,
+                "is_auto_join_admin": u.is_auto_join_admin
             })
         })
         .collect();
@@ -184,17 +157,14 @@ async fn get_users() -> impl IntoResponse {
 async fn generate_jwt(State(state): State<AppState>, cookies: Cookies) -> impl IntoResponse {
     if let Some(cookie) = cookies.get("session") {
         if let Ok(user) = serde_json::from_str::<DemoUser>(cookie.value()) {
-            let identifiers = vec![Identifier::new("email", &user.email)];
-            let groups = user
-                .groups
-                .iter()
-                .map(|g| Group::new(&g.group_type, &g.id, &g.name))
-                .collect();
+            let vortex_user = vortex_sdk::User::new(&user.id, &user.email);
+            let vortex_user = if user.is_auto_join_admin {
+                vortex_user.with_admin_scopes(vec!["autoJoin".to_string()])
+            } else {
+                vortex_user
+            };
 
-            match state
-                .vortex
-                .generate_jwt(&user.id, identifiers, groups, Some(&user.role))
-            {
+            match state.vortex.generate_jwt(&vortex_user, None) {
                 Ok(jwt) => {
                     return Json(serde_json::json!({"jwt": jwt})).into_response();
                 }
@@ -442,8 +412,8 @@ async fn main() {
     println!("📊 Health check: http://localhost:31337/health");
     println!();
     println!("Demo users:");
-    println!("  - admin@example.com / password123 (admin role)");
-    println!("  - user@example.com / userpass (user role)");
+    println!("  - admin@example.com / password123 (auto-join admin)");
+    println!("  - user@example.com / userpass (regular user)");
 
     let state = AppState { vortex };
 

@@ -46,10 +46,10 @@ A demo application showcasing the Vortex Rust SDK integration with Axum web fram
 
 The demo includes two pre-configured users:
 
-| Email | Password | Role | Groups |
-|-------|----------|------|--------|
-| admin@example.com | password123 | admin | Engineering, Acme Corp |
-| user@example.com | userpass | user | Engineering |
+| Email | Password | Auto-Join Admin |
+|-------|----------|-----------------|
+| admin@example.com | password123 | Yes |
+| user@example.com | userpass | No |
 
 ## API Endpoints
 
@@ -75,6 +75,34 @@ The demo includes two pre-configured users:
 
 ### Health Check
 - `GET /health` - Server health status
+
+## JWT Format
+
+This demo uses Vortex's **new JWT format with User builder pattern**:
+
+```rust
+// Create a user with the builder pattern
+let user = vortex_sdk::User::new(&user_id, &user_email)
+    .with_admin_scopes(vec!["autoJoin".to_string()]);
+
+// Generate JWT
+let jwt = vortex_client.generate_jwt(&user, None)?;
+
+// Or with extra properties
+let extra = std::collections::HashMap::from([
+    ("role".to_string(), serde_json::json!("admin")),
+    ("department".to_string(), serde_json::json!("Engineering")),
+]);
+let jwt = vortex_client.generate_jwt(&user, Some(extra))?;
+```
+
+The JWT payload includes:
+- `userId`: User's unique ID
+- `userEmail`: User's email address
+- `userIsAutoJoinAdmin`: Set to `true` when `adminScopes` contains `"autoJoin"`
+- Any additional properties from the `extra` parameter
+
+This replaces the legacy format with identifiers, groups, and role fields.
 
 ## Project Structure
 
