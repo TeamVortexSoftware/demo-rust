@@ -19,6 +19,7 @@ A demo application showcasing the Vortex Rust SDK integration with Axum web fram
 ## Installation
 
 1. Navigate to the demo directory:
+
    ```bash
    cd apps/demo-rust
    ```
@@ -31,11 +32,13 @@ A demo application showcasing the Vortex Rust SDK integration with Axum web fram
 ## Running the Demo
 
 1. Set your Vortex API key (optional - defaults to demo key):
+
    ```bash
    export VORTEX_API_KEY=your-api-key-here
    ```
 
 2. Run the server:
+
    ```bash
    cargo run
    ```
@@ -46,20 +49,22 @@ A demo application showcasing the Vortex Rust SDK integration with Axum web fram
 
 The demo includes two pre-configured users:
 
-| Email | Password | Auto-Join Admin |
-|-------|----------|-----------------|
-| admin@example.com | password123 | Yes |
-| user@example.com | userpass | No |
+| Email             | Password    | Autojoin Admin |
+| ----------------- | ----------- | --------------- |
+| admin@example.com | password123 | Yes             |
+| user@example.com  | userpass    | No              |
 
 ## API Endpoints
 
 ### Authentication
+
 - `POST /api/auth/login` - Login with email/password
 - `POST /api/auth/logout` - Logout current user
 - `GET /api/auth/me` - Get current user info
 - `GET /api/auth/users` - Get demo users list
 
 ### Vortex Integration
+
 - `POST /api/vortex/jwt` - Generate Vortex JWT for current user
 - `GET /api/vortex/invitations` - Get invitations by target
 - `GET /api/vortex/invitations/:id` - Get a specific invitation by ID
@@ -70,10 +75,12 @@ The demo includes two pre-configured users:
 - `POST /api/vortex/invitations/:id/reinvite` - Reinvite a user
 
 ### Demo Routes
+
 - `GET /api/demo/protected` - Protected route example
 - `GET /api/demo/users` - Get demo users list
 
 ### Health Check
+
 - `GET /health` - Server health status
 
 ## JWT Format
@@ -83,7 +90,7 @@ This demo uses Vortex's **new JWT format with User builder pattern**:
 ```rust
 // Create a user with the builder pattern
 let user = vortex_sdk::User::new(&user_id, &user_email)
-    .with_admin_scopes(vec!["autoJoin".to_string()]);
+    .with_admin_scopes(vec!["autojoin".to_string()]);
 
 // Generate JWT
 let jwt = vortex_client.generate_jwt(&user, None)?;
@@ -97,9 +104,10 @@ let jwt = vortex_client.generate_jwt(&user, Some(extra))?;
 ```
 
 The JWT payload includes:
+
 - `userId`: User's unique ID
 - `userEmail`: User's email address
-- `userIsAutoJoinAdmin`: Set to `true` when `adminScopes` contains `"autoJoin"`
+- `userIsAutojoinAdmin`: Set to `true` when `adminScopes` contains `"autojoin"`
 - Any additional properties from the `extra` parameter
 
 This replaces the legacy format with identifiers, groups, and role fields.

@@ -23,7 +23,7 @@ struct DemoUser {
     #[serde(skip_serializing, default)]
     password: String,
     name: String,
-    is_auto_join_admin: bool,
+    is_autojoin_admin: bool,
 }
 
 fn demo_users() -> Vec<DemoUser> {
@@ -33,14 +33,14 @@ fn demo_users() -> Vec<DemoUser> {
             email: "admin@example.com".to_string(),
             password: "password123".to_string(),
             name: "Admin User".to_string(),
-            is_auto_join_admin: true,
+            is_autojoin_admin: true,
         },
         DemoUser {
             id: "user-2".to_string(),
             email: "user@example.com".to_string(),
             password: "userpass".to_string(),
             name: "Regular User".to_string(),
-            is_auto_join_admin: false,
+            is_autojoin_admin: false,
         },
     ]
 }
@@ -145,7 +145,7 @@ async fn get_users() -> impl IntoResponse {
                 "id": u.id,
                 "email": u.email,
                 "name": u.name,
-                "is_auto_join_admin": u.is_auto_join_admin
+                "is_autojoin_admin": u.is_autojoin_admin
             })
         })
         .collect();
@@ -158,8 +158,8 @@ async fn generate_jwt(State(state): State<AppState>, cookies: Cookies) -> impl I
     if let Some(cookie) = cookies.get("session") {
         if let Ok(user) = serde_json::from_str::<DemoUser>(cookie.value()) {
             let vortex_user = vortex_sdk::User::new(&user.id, &user.email);
-            let vortex_user = if user.is_auto_join_admin {
-                vortex_user.with_admin_scopes(vec!["autoJoin".to_string()])
+            let vortex_user = if user.is_autojoin_admin {
+                vortex_user.with_admin_scopes(vec!["autojoin".to_string()])
             } else {
                 vortex_user
             };
@@ -412,7 +412,7 @@ async fn main() {
     println!("📊 Health check: http://localhost:31337/health");
     println!();
     println!("Demo users:");
-    println!("  - admin@example.com / password123 (auto-join admin)");
+    println!("  - admin@example.com / password123 (autojoin admin)");
     println!("  - user@example.com / userpass (regular user)");
 
     let state = AppState { vortex };
